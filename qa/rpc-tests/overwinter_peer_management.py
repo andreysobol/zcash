@@ -55,8 +55,8 @@ class OverwinterPeerManagementTest(BitcoinTestFramework):
         # Launch 10 Sprout and 10 Overwinter mininodes
         nodes = []
         for x in xrange(10):
-            nodes.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], test, "regtest", False))
-            nodes.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], test, "regtest", True))
+            nodes.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], test, "regtest", 1, False))
+            nodes.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], test, "regtest", 1, True))
 
         # Start up network handling in another thread
         NetworkThread().start()
