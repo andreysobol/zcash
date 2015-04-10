@@ -1068,6 +1068,13 @@ public:
         }
     }
 
+    void GetScriptForMining(CScript &script);
+    void UpdateRequestCount(const CBlock& block)
+    {
+        LOCK(cs_wallet);
+        mapRequestCount[block.GetHash()] = 0;
+    };
+    
     unsigned int GetKeyPoolSize()
     {
         AssertLockHeld(cs_wallet); // setKeyPool
