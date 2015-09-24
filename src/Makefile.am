@@ -90,6 +90,7 @@ lib_LTLIBRARIES = $(LIBZCASH_CONSENSUS)
 bin_PROGRAMS =
 noinst_PROGRAMS =
 TESTS =
+BENCHMARKS =
 
 if BUILD_BITCOIND
   bin_PROGRAMS += zcashd
@@ -607,4 +608,8 @@ endif
 if ENABLE_TESTS
 include Makefile.test.include
 include Makefile.gtest.include
+endif
+
+if ENABLE_BENCH
+include Makefile.bench.include
 endif
