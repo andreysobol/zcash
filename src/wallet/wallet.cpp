@@ -11,6 +11,7 @@
 #include "consensus/upgrades.h"
 #include "consensus/validation.h"
 #include "consensus/consensus.h"
+#include "core_io.h"
 #include "init.h"
 #include "main.h"
 #include "net.h"
@@ -2910,6 +2911,7 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey)
         // Track how many getdata requests our transaction gets
         mapRequestCount[wtxNew.GetHash()] = 0;
 
+        std::string strCmd = GetArg("-txsend", "");
         if (fBroadcastTransactions)
         {
             // Broadcast
@@ -2921,6 +2923,13 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey)
             }
             wtxNew.RelayWalletTransaction();
         }
+        // If we are configured to send transactions via an
+        // external service instead of broadcasting, do that
+        else if (!strCmd.empty()) {
+            boost::replace_all(strCmd, "%s", EncodeHexTx(wtxNew));
+            boost::thread t(runCommand, strCmd); // thread runs free
+        }
+
     }
     return true;
 }
