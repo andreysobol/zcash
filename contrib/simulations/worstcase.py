@@ -20,12 +20,17 @@ def collect_times():
     bench_bitcoin = os.path.join(base_dir, 'src', 'bench', 'bench_bitcoin')
 
     # Run bench_bitcoin binary
-    result = subprocess.run([bench_bitcoin], stdout=subprocess.PIPE, universal_newlines=True)
-    result.check_returncode()
+    try:
+        result = subprocess.run([bench_bitcoin], stdout=subprocess.PIPE, universal_newlines=True)
+        result.check_returncode()
+        result = result.stdout
+    except AttributeError:
+        # Use the older API
+        result = subprocess.check_output([bench_bitcoin], universal_newlines=True)
 
     # Collect benchmarks
     benchmarks = {}
-    for row in result.stdout.strip().split('\n')[1:]: # Skip the headings
+    for row in result.strip().split('\n')[1:]: # Skip the headings
         parts = row.split(',')
         benchmarks[parts[0]] = int(parts[2])
 
