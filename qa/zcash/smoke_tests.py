@@ -1,14 +1,16 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 #
 # Execute the standard smoke tests for Zcash releases.
 #
 
 import argparse
+import datetime
 import decimal
 import os
 import subprocess
 import sys
 import time
+import traceback
 
 from slickrpc import Proxy
 from slickrpc.exc import RpcException
@@ -101,13 +103,14 @@ SMOKE_TESTS = [
     ('7e', True, True), # Run getnetworksolps
 ]
 
+TIME_STARTED = datetime.datetime.now()
 
 #
 # Test helpers
 #
 
 def run_cmd(results, case, zcash, name, args=[]):
-    print('-----')
+    print('----- %s -----' % (datetime.datetime.now() - TIME_STARTED))
     print('%s $ zcash-cli %s %s' % (
         case.ljust(3),
         name,
@@ -116,7 +119,7 @@ def run_cmd(results, case, zcash, name, args=[]):
     try:
         res = zcash.__getattr__(name)(*args)
         print(res)
-        print()
+        print ""
         if results is not None and len(case) > 0:
             results[case] = True
         return res
@@ -128,18 +131,15 @@ def run_cmd(results, case, zcash, name, args=[]):
 
 def wait_for_balance(zcash, zaddr, expected=None, timeout=900):
     print('Waiting for funds to %s...' % zaddr)
-    if expected is not None:
-        print('Expecting %s' % expected)
-
-    unconfirmed_balance = zcash.z_getbalance(zaddr, 0)
-    print('Unconfirmed balance: %s' % unconfirmed_balance)
+    unconfirmed_balance = decimal.Decimal(zcash.z_getbalance(zaddr, 0)).quantize(decimal.Decimal('1.00000000'))
+    print('Expecting: %s; Unconfirmed Balance: %s' % (expected, unconfirmed_balance))
     if expected is not None and unconfirmed_balance != expected:
         print('WARNING: Unconfirmed balance does not match expected balance')
 
     ttl = timeout
     while True:
-        balance = zcash.z_getbalance(zaddr)
-        if balance == unconfirmed_balance:
+        balance = decimal.Decimal(zcash.z_getbalance(zaddr)).quantize(decimal.Decimal('1.00000000'))
+        if (expected is not None and balance == unconfirmed_balance) or (expected is None and balance > 0):
             print('Received %s' % balance)
             return balance
 
@@ -147,9 +147,10 @@ def wait_for_balance(zcash, zaddr, expected=None, timeout=900):
         ttl -= 1
         if ttl == 0:
             # Ask user if they want to keep waiting
-            print()
-            ret = input('Do you wish to continue waiting? (Y/n) ')
-            if ret.to_lower() == 'n':
+            print ""
+            print('Balance: %s Expected: %s' % (balance, expected))
+            ret = raw_input('Do you wish to continue waiting? (Y/n) ')
+            if ret.lower() == 'n':
                 print('Address contained %s at timeout' % balance)
                 return balance
             else:
@@ -178,7 +179,7 @@ def wait_for_txid_operation(zcash, opid, timeout=300):
         return None
     elif status == 'success':
         txid = result['result']['txid']
-        print(txid)
+        print('txid: %s' % txid)
         return txid
 
 def async_txid_cmd(results, case, zcash, name, args=[]):
@@ -209,7 +210,7 @@ def z_sendmany(results, case, zcash, from_addr, recipients):
 def check_z_sendmany(results, case, zcash, from_addr, recipients):
     txid = z_sendmany(results, case, zcash, from_addr, recipients)
     if txid is None:
-        return decimal.Decimal('0')
+        return [decimal.Decimal('0')]
     return [wait_and_check_balance(results, case, zcash, to_addr, amount) for (to_addr, amount) in recipients]
 
 def check_z_sendmany_parallel(results, zcash, runs):
@@ -217,7 +218,7 @@ def check_z_sendmany_parallel(results, zcash, runs):
     txids = [(run, z_sendmany(results, run[0], zcash, run[1], run[2])) for run in runs]
     # Then wait for balance updates caused by successful transactions
     return [
-        wait_and_check_balance(results, run[0], zcash, to_addr, amount) if txid is not None else decimal.Decimal('0')
+        wait_and_check_balance(results, run[0], zcash, to_addr, amount) if txid is not None else 0
         for (run, txid) in txids
         for (to_addr, amount) in run[2]]
 
@@ -227,7 +228,7 @@ def z_mergetoaddress(results, case, zcash, from_addrs, to_addr):
 def check_z_mergetoaddress(results, case, zcash, from_addrs, to_addr, amount):
     txid = z_mergetoaddress(results, case, zcash, from_addrs, to_addr)
     if txid is None:
-        return decimal.Decimal('0')
+        return [decimal.Decimal('0')]
     return wait_and_check_balance(results, case, zcash, to_addr, amount)
 
 def check_z_mergetoaddress_parallel(results, zcash, runs):
@@ -235,7 +236,7 @@ def check_z_mergetoaddress_parallel(results, zcash, runs):
     txids = [(run, z_mergetoaddress(results, run[0], zcash, run[1], run[2])) for run in runs]
     # Then wait for balance updates caused by successful transactions
     return [
-        wait_and_check_balance(results, run[0], zcash, run[2], run[3]) if txid is not None else decimal.Decimal('0')
+        wait_and_check_balance(results, run[0], zcash, run[2], run[3]) if txid is not None else 0
         for (run, txid) in txids]
 
 
@@ -296,17 +297,17 @@ def transaction_chain(zcash):
     print('#')
     print('# Initialising transaction chain')
     print('#')
-    print()
-    chain_end = input('Type or paste transparent address where leftover funds should be sent: ')
+    print ""
+    chain_end = raw_input('Type or paste transparent address where leftover funds should be sent: ')
     if not zcash.validateaddress(chain_end)['isvalid']:
         print('Invalid transparent address')
         return results
-    print()
+    print ""
     print('Please send at least 0.01 ZEC/TAZ to the following address:')
     print(sprout_zaddr_1)
-    print()
-    input('Press any key once the funds have been sent.')
-    print()
+    print ""
+    raw_input('Press Enter once the funds have been sent.')
+    print ""
 
     # Wait to receive starting balance
     sprout_balance = wait_for_balance(zcash, sprout_zaddr_1)
@@ -315,11 +316,11 @@ def transaction_chain(zcash):
     #
     # Start the transaction chain!
     #
-    print()
+    print ""
     print('#')
     print('# Starting transaction chain')
     print('#')
-    print()
+    print ""
     try:
         #
         # First, split the funds across all three pools
@@ -327,10 +328,10 @@ def transaction_chain(zcash):
 
         # Sprout -> taddr
         taddr_balance = check_z_sendmany(
-            results, '4c', zcash, sprout_zaddr_1, [(taddr_1, (starting_balance / 10) * 6)])[0]
+            results, '4c', zcash, sprout_zaddr_1, [(taddr_1, (starting_balance / decimal.Decimal('10')) * decimal.Decimal('6'))])[0]
         sprout_balance -= taddr_balance + DEFAULT_FEE
 
-        balance = run_cmd(results, '5f', zcash, 'z_getbalance', [sprout_zaddr_1])
+        balance = decimal.Decimal(run_cmd(results, '5f', zcash, 'z_getbalance', [sprout_zaddr_1])).quantize(decimal.Decimal('1.00000000'))
         if balance != sprout_balance:
             results['5f'] = False
 
@@ -338,11 +339,11 @@ def transaction_chain(zcash):
         # Send it all here because z_sendmany pick a new t-addr for change
         sapling_balance = check_z_sendmany(
             results, '4f', zcash, taddr_1, [(sapling_zaddr_1, taddr_balance - DEFAULT_FEE)])[0]
-        taddr_balance = 0
+        taddr_balance = decimal.Decimal('0')
 
         # Sapling -> taddr
         taddr_balance = check_z_sendmany(
-            results, '4i', zcash, sapling_zaddr_1, [(taddr_1, (starting_balance / 10) * 3)])[0]
+            results, '4i', zcash, sapling_zaddr_1, [(taddr_1, (starting_balance / decimal.Decimal('10')) * decimal.Decimal('3'))])[0]
         sapling_balance -= taddr_balance + DEFAULT_FEE
 
         #
@@ -370,16 +371,16 @@ def transaction_chain(zcash):
         # Sapling -> multiple Sapling
         check_z_sendmany_parallel(results, zcash, [
             ('4k', sprout_zaddr_2, [
-                (sprout_zaddr_1, starting_balance / 10),
-                (sprout_zaddr_3, starting_balance / 10),
+                (sprout_zaddr_1, starting_balance / decimal.Decimal('10')),
+                (sprout_zaddr_3, starting_balance / decimal.Decimal('10')),
             ]),
             ('4p', taddr_2, [
-                (taddr_1, starting_balance / 10),
-                (taddr_3, taddr_balance - (starting_balance / 10) - DEFAULT_FEE),
+                (taddr_1, starting_balance / decimal.Decimal('10')),
+                (taddr_3, taddr_balance - (starting_balance / decimal.Decimal('10')) - DEFAULT_FEE),
             ]),
             ('4t', sapling_zaddr_2, [
-                (sapling_zaddr_1, starting_balance / 10),
-                (sapling_zaddr_3, starting_balance / 10),
+                (sapling_zaddr_1, starting_balance / decimal.Decimal('10')),
+                (sapling_zaddr_3, starting_balance / decimal.Decimal('10')),
             ]),
         ])
         sprout_balance -= DEFAULT_FEE
@@ -410,8 +411,8 @@ def transaction_chain(zcash):
 
         # Sprout -> taddr and Sapling
         txid = z_sendmany(results, '4n', zcash, sprout_zaddr_2, [
-            (taddr_2, starting_balance / 10),
-            (sapling_zaddr_1, starting_balance / 10),
+            (taddr_2, starting_balance / decimal.Decimal('10')),
+            (sapling_zaddr_1, starting_balance / decimal.Decimal('10')),
         ])
         if txid is not None:
             print('Should have failed')
@@ -419,8 +420,8 @@ def transaction_chain(zcash):
 
         # Sprout -> multiple Sapling
         txid = z_sendmany(results, '4o', zcash, sprout_zaddr_2, [
-            (sapling_zaddr_1, starting_balance / 10),
-            (sapling_zaddr_2, starting_balance / 10),
+            (sapling_zaddr_1, starting_balance / decimal.Decimal('10')),
+            (sapling_zaddr_2, starting_balance / decimal.Decimal('10')),
         ])
         if txid is not None:
             print('Should have failed')
@@ -428,8 +429,8 @@ def transaction_chain(zcash):
 
         # taddr -> Sprout and Sapling
         txid = z_sendmany(results, '4s', zcash, taddr_2, [
-            (sprout_zaddr_1, starting_balance / 10),
-            (sapling_zaddr_1, starting_balance / 10),
+            (sprout_zaddr_1, starting_balance / decimal.Decimal('10')),
+            (sapling_zaddr_1, starting_balance / decimal.Decimal('10')),
         ])
         if txid is not None:
             print('Should have failed')
@@ -437,8 +438,8 @@ def transaction_chain(zcash):
 
         # Sapling -> multiple Sprout
         txid = z_sendmany(results, '4u', zcash, sapling_zaddr_2, [
-            (sprout_zaddr_1, starting_balance / 10),
-            (sprout_zaddr_2, starting_balance / 10),
+            (sprout_zaddr_1, starting_balance / decimal.Decimal('10')),
+            (sprout_zaddr_2, starting_balance / decimal.Decimal('10')),
         ])
         if txid is not None:
             print('Should have failed')
@@ -446,8 +447,8 @@ def transaction_chain(zcash):
 
         # Sapling -> Sapling and Sprout
         txid = z_sendmany(results, '4x', zcash, sapling_zaddr_2, [
-            (sapling_zaddr_1, starting_balance / 10),
-            (sprout_zaddr_1, starting_balance / 10),
+            (sapling_zaddr_1, starting_balance / decimal.Decimal('10')),
+            (sprout_zaddr_1, starting_balance / decimal.Decimal('10')),
         ])
         if txid is not None:
             print('Should have failed')
@@ -467,60 +468,60 @@ def transaction_chain(zcash):
         # Sapling -> taddr and Sapling
         check_z_sendmany_parallel(results, zcash, [
             ('4m', sprout_zaddr_2, [
-                (taddr_1, starting_balance / 10),
-                (sprout_zaddr_1, starting_balance / 10),
+                (taddr_1, starting_balance / decimal.Decimal('10')),
+                (sprout_zaddr_1, starting_balance / decimal.Decimal('10')),
             ]),
             ('4w', sapling_zaddr_2, [
-                (taddr_3, starting_balance / 10),
-                (sapling_zaddr_1, starting_balance / 10),
+                (taddr_3, starting_balance / decimal.Decimal('10')),
+                (sapling_zaddr_1, starting_balance / decimal.Decimal('10')),
             ]),
         ])
-        sprout_balance -= (starting_balance / 10) + DEFAULT_FEE
-        sapling_balance -= (starting_balance / 10) + DEFAULT_FEE
-        taddr_balance += (starting_balance / 10) * 2
+        sprout_balance -= (starting_balance / decimal.Decimal('10')) + DEFAULT_FEE
+        sapling_balance -= (starting_balance / decimal.Decimal('10')) + DEFAULT_FEE
+        taddr_balance += (starting_balance / decimal.Decimal('10')) * decimal.Decimal('2')
 
         # taddr and Sprout -> Sprout
         # taddr and Sapling -> Sapling
         check_z_mergetoaddress_parallel(results, zcash, [
-            ('4dd', [taddr_1, sprout_zaddr_1], sprout_zaddr_2, sprout_balance + (starting_balance / 10) - DEFAULT_FEE),
-            ('4ee', [taddr_3, sapling_zaddr_1], sapling_zaddr_2, sapling_balance + (starting_balance / 10) - DEFAULT_FEE),
+            ('4dd', [taddr_1, sprout_zaddr_1], sprout_zaddr_2, sprout_balance + (starting_balance / decimal.Decimal('10')) - DEFAULT_FEE),
+            ('4ee', [taddr_3, sapling_zaddr_1], sapling_zaddr_2, sapling_balance + (starting_balance / decimal.Decimal('10')) - DEFAULT_FEE),
         ])
-        sprout_balance += (starting_balance / 10) - DEFAULT_FEE
-        sapling_balance += (starting_balance / 10) - DEFAULT_FEE
-        taddr_balance -= (starting_balance / 10) * 2
+        sprout_balance += (starting_balance / decimal.Decimal('10')) - DEFAULT_FEE
+        sapling_balance += (starting_balance / decimal.Decimal('10')) - DEFAULT_FEE
+        taddr_balance -= (starting_balance / decimal.Decimal('10')) * decimal.Decimal('2')
 
         # Sprout -> multiple taddr
         # Sapling -> multiple taddr
         check_z_sendmany_parallel(results, zcash, [
             ('4l', sprout_zaddr_2, [
-                (taddr_1, (starting_balance / 10)),
-                (taddr_3, (starting_balance / 10)),
+                (taddr_1, (starting_balance / decimal.Decimal('10'))),
+                (taddr_3, (starting_balance / decimal.Decimal('10'))),
             ]),
             ('4v', sapling_zaddr_2, [
-                (taddr_4, (starting_balance / 10)),
-                (taddr_5, (starting_balance / 10)),
+                (taddr_4, (starting_balance / decimal.Decimal('10'))),
+                (taddr_5, (starting_balance / decimal.Decimal('10'))),
             ]),
         ])
-        sprout_balance -= ((starting_balance / 10) * 2) + DEFAULT_FEE
-        sapling_balance -= ((starting_balance / 10) * 2) + DEFAULT_FEE
-        taddr_balance += (starting_balance / 10) * 4
+        sprout_balance -= ((starting_balance / decimal.Decimal('10')) * decimal.Decimal('2')) + DEFAULT_FEE
+        sapling_balance -= ((starting_balance / decimal.Decimal('10')) * decimal.Decimal('2')) + DEFAULT_FEE
+        taddr_balance += (starting_balance / decimal.Decimal('10')) * decimal.Decimal('4')
 
         # multiple taddr -> Sprout
         # multiple taddr -> Sapling
         check_z_mergetoaddress_parallel(results, zcash, [
-            ('4z', [taddr_1, taddr_3], sprout_zaddr_2, sprout_balance + ((starting_balance / 10) * 2) - DEFAULT_FEE),
-            ('4bb', [taddr_4, taddr_5], sapling_zaddr_2, sapling_balance + ((starting_balance / 10) * 2) - DEFAULT_FEE),
+            ('4z', [taddr_1, taddr_3], sprout_zaddr_2, sprout_balance + ((starting_balance / decimal.Decimal('10')) * decimal.Decimal('2')) - DEFAULT_FEE),
+            ('4bb', [taddr_4, taddr_5], sapling_zaddr_2, sapling_balance + ((starting_balance / decimal.Decimal('10')) * decimal.Decimal('2')) - DEFAULT_FEE),
         ])
-        sprout_balance += ((starting_balance / 10) * 2) - DEFAULT_FEE
-        sapling_balance += ((starting_balance / 10) * 2) - DEFAULT_FEE
-        taddr_balance -= (starting_balance / 10) * 4
+        sprout_balance += ((starting_balance / decimal.Decimal('10')) * decimal.Decimal('2')) - DEFAULT_FEE
+        sapling_balance += ((starting_balance / decimal.Decimal('10')) * decimal.Decimal('2')) - DEFAULT_FEE
+        taddr_balance -= (starting_balance / decimal.Decimal('10')) * decimal.Decimal('4')
 
         # taddr -> Sprout
         check_z_sendmany_parallel(results, zcash, [
             ('4d', taddr_2, [(sprout_zaddr_3, taddr_balance - DEFAULT_FEE)]),
         ])
         sprout_balance += taddr_balance - DEFAULT_FEE
-        taddr_balance = 0
+        taddr_balance = decimal.Decimal('0')
 
         # multiple Sprout -> taddr
         # multiple Sapling -> taddr
@@ -529,26 +530,26 @@ def transaction_chain(zcash):
             ('', [sapling_zaddr_1, sapling_zaddr_2, sapling_zaddr_3], taddr_2, sapling_balance - DEFAULT_FEE),
         ])
         taddr_balance = sprout_balance + sapling_balance - (2 * DEFAULT_FEE)
-        sprout_balance = 0
-        sapling_balance = 0
+        sprout_balance = decimal.Decimal('0')
+        sapling_balance = decimal.Decimal('0')
 
         # taddr -> multiple Sprout
         # taddr -> multiple Sapling
-        taddr_1_balance = zcash.z_getbalance(taddr_1)
-        taddr_2_balance = zcash.z_getbalance(taddr_2)
+        taddr_1_balance = decimal.Decimal(zcash.z_getbalance(taddr_1)).quantize(decimal.Decimal('1.00000000'))
+        taddr_2_balance = decimal.Decimal(zcash.z_getbalance(taddr_2)).quantize(decimal.Decimal('1.00000000'))
         check_z_sendmany_parallel(results, zcash, [
             ('4q', taddr_1, [
-                (sprout_zaddr_1, (starting_balance / 10)),
-                (sprout_zaddr_2, taddr_1_balance - (starting_balance / 10) - DEFAULT_FEE),
+                (sprout_zaddr_1, (starting_balance / decimal.Decimal('10'))),
+                (sprout_zaddr_2, taddr_1_balance - (starting_balance / decimal.Decimal('10')) - DEFAULT_FEE),
             ]),
             ('4r', taddr_2, [
-                (sapling_zaddr_1, (starting_balance / 10)),
-                (sapling_zaddr_2, taddr_2_balance - (starting_balance / 10) - DEFAULT_FEE),
+                (sapling_zaddr_1, (starting_balance / decimal.Decimal('10'))),
+                (sapling_zaddr_2, taddr_2_balance - (starting_balance / decimal.Decimal('10')) - DEFAULT_FEE),
             ]),
         ])
         sprout_balance = taddr_1_balance - DEFAULT_FEE
         sapling_balance = taddr_2_balance - DEFAULT_FEE
-        taddr_balance = 0
+        taddr_balance = decimal.Decimal('0')
 
         # multiple Sprout -> taddr
         # multiple Sapling -> taddr
@@ -556,26 +557,29 @@ def transaction_chain(zcash):
             ('', [sprout_zaddr_1, sprout_zaddr_2], taddr_1, sprout_balance - DEFAULT_FEE),
             ('', [sapling_zaddr_1, sapling_zaddr_2], taddr_2, sapling_balance - DEFAULT_FEE),
         ])
-        taddr_balance = sprout_balance + sapling_balance - (2 * DEFAULT_FEE)
-        sprout_balance = 0
-        sapling_balance = 0
+        taddr_balance = sprout_balance + sapling_balance - (decimal.Decimal('2') * DEFAULT_FEE)
+        sprout_balance = decimal.Decimal('0')
+        sapling_balance = decimal.Decimal('0')
 
         # z_mergetoaddress taddr -> Sprout
         # z_mergetoaddress taddr -> Sapling
-        taddr_1_balance = zcash.z_getbalance(taddr_1)
-        taddr_2_balance = zcash.z_getbalance(taddr_2)
+        taddr_1_balance = decimal.Decimal(zcash.z_getbalance(taddr_1)).quantize(decimal.Decimal('1.00000000'))
+        taddr_2_balance = decimal.Decimal(zcash.z_getbalance(taddr_2)).quantize(decimal.Decimal('1.00000000'))
         check_z_mergetoaddress_parallel(results, zcash, [
             ('4y', [taddr_1], sprout_zaddr_1, taddr_1_balance - DEFAULT_FEE),
             ('4cc', [taddr_2], sapling_zaddr_1, taddr_2_balance - DEFAULT_FEE),
         ])
         sprout_balance = taddr_1_balance - DEFAULT_FEE
         sapling_balance = taddr_2_balance - DEFAULT_FEE
-        taddr_balance = 0
+        taddr_balance = decimal.Decimal('0')
+    except Exception as e:
+        print('Error: %s' % e)
+        traceback.print_exc()
     finally:
         #
         # End the chain by returning the remaining funds
         #
-        print()
+        print ""
         print('#')
         print('# Finishing transaction chain')
         print('#')
@@ -585,15 +589,18 @@ def transaction_chain(zcash):
             sapling_zaddr_1, sapling_zaddr_2, sapling_zaddr_3,
         ]
 
-        print()
+        print ""
         print('Waiting for all transactions to be mined')
-        [wait_for_balance(zcash, addr) for addr in all_addrs]
+        for addr in all_addrs:
+            balance = decimal.Decimal(zcash.z_getbalance(addr, 0)).quantize(decimal.Decimal('1.00000000'))
+            if balance > 0:
+                wait_for_balance(zcash, addr, balance)
 
-        print()
+        print ""
         print('Returning remaining balance minus fees')
         for addr in all_addrs:
-            balance = zcash.z_getbalance(addr)
-            if balance != 0:
+            balance = decimal.Decimal(zcash.z_getbalance(addr)).quantize(decimal.Decimal('1.00000000'))
+            if balance > 0:
                 z_sendmany(None, '', zcash, addr, [(chain_end, balance - DEFAULT_FEE)])
 
     return results
@@ -616,7 +623,7 @@ STAGE_COMMANDS = {
 def run_stage(stage, zcash):
     print('Running stage %s' % stage)
     print('=' * (len(stage) + 14))
-    print()
+    print ""
 
     cmd = STAGE_COMMANDS[stage]
     if cmd is not None:
@@ -625,10 +632,10 @@ def run_stage(stage, zcash):
         print('WARNING: stage not yet implemented, skipping')
         ret = {}
 
-    print()
+    print ""
     print('-' * (len(stage) + 15))
     print('Finished stage %s' % stage)
-    print()
+    print ""
 
     return ret
 
@@ -730,8 +737,7 @@ def main():
     parser.add_argument('--mainnet', action='store_true', help='Use mainnet instead of testnet')
     parser.add_argument('--wallet', default='wallet.dat', help='Wallet file to use (within data directory)')
     parser.add_argument('datadir', help='Data directory to use for smoke testing', default=None)
-    parser.add_argument('stage', nargs='*', default=STAGES,
-                        help='One of %s'%STAGES)
+    parser.add_argument('stage', nargs='*', default=STAGES, help='One of %s' % STAGES)
     args = parser.parse_args()
 
     # Check for list
@@ -753,9 +759,10 @@ def main():
 
     # Start zcashd
     zcash = ZcashNode(args.datadir, args.wallet)
+    print('Start time: %s' % TIME_STARTED)
     print('Starting zcashd...')
     zcash.start(not args.mainnet)
-    print()
+    print ""
 
     # Run the stages
     results = {}
@@ -767,7 +774,7 @@ def main():
     zcash.stop()
 
     passed = True
-    print()
+    print ""
     print('========================')
     print('       Results')
     print('========================')
@@ -792,7 +799,7 @@ def main():
         ))
 
     if not passed:
-        print()
+        print ""
         print("!!! One or more smoke test stages failed !!!")
         sys.exit(1)
 
