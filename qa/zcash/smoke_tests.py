@@ -185,7 +185,7 @@ def wait_for_txid_operation(zcash, opid, timeout=300):
 def async_txid_cmd(results, case, zcash, name, args=[]):
     opid = run_cmd(results, case, zcash, name, args)
     # Some async commands return a dictionary containing the opid
-    if type(opid) == type({}):
+    if isinstance(opid, dict):
         opid = opid['opid']
     if opid is None:
         if results is not None and len(case) > 0:
@@ -279,9 +279,9 @@ def transaction_chain(zcash):
     # Check that the zaddrs are all listed
     zaddrs = run_cmd(results, '5a', zcash, 'z_listaddresses')
     if (sprout_zaddr_1 not in zaddrs or
-        sprout_zaddr_2 not in zaddrs or
-        sapling_zaddr_1 not in zaddrs or
-        sapling_zaddr_2 not in zaddrs):
+            sprout_zaddr_2 not in zaddrs or
+            sapling_zaddr_1 not in zaddrs or
+            sapling_zaddr_2 not in zaddrs):
         results['5a'] = False
 
     # Validate the addresses
