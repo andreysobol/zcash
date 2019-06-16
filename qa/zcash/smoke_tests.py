@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #
 # Execute the standard smoke tests for Zcash releases.
 #
@@ -119,7 +119,7 @@ def run_cmd(results, case, zcash, name, args=[]):
     try:
         res = zcash.__getattr__(name)(*args)
         print(res)
-        print ""
+        print()
         if results is not None and len(case) > 0:
             results[case] = True
         return res
@@ -147,9 +147,9 @@ def wait_for_balance(zcash, zaddr, expected=None, timeout=900):
         ttl -= 1
         if ttl == 0:
             # Ask user if they want to keep waiting
-            print ""
+            print()
             print('Balance: %s Expected: %s' % (balance, expected))
-            ret = raw_input('Do you wish to continue waiting? (Y/n) ')
+            ret = input('Do you wish to continue waiting? (Y/n) ')
             if ret.lower() == 'n':
                 print('Address contained %s at timeout' % balance)
                 return balance
@@ -297,17 +297,17 @@ def transaction_chain(zcash):
     print('#')
     print('# Initialising transaction chain')
     print('#')
-    print ""
-    chain_end = raw_input('Type or paste transparent address where leftover funds should be sent: ')
+    print()
+    chain_end = input('Type or paste transparent address where leftover funds should be sent: ')
     if not zcash.validateaddress(chain_end)['isvalid']:
         print('Invalid transparent address')
         return results
-    print ""
+    print()
     print('Please send at least 0.01 ZEC/TAZ to the following address:')
     print(sprout_zaddr_1)
-    print ""
-    raw_input('Press Enter once the funds have been sent.')
-    print ""
+    print()
+    input('Press Enter once the funds have been sent.')
+    print()
 
     # Wait to receive starting balance
     sprout_balance = wait_for_balance(zcash, sprout_zaddr_1)
@@ -316,11 +316,11 @@ def transaction_chain(zcash):
     #
     # Start the transaction chain!
     #
-    print ""
+    print()
     print('#')
     print('# Starting transaction chain')
     print('#')
-    print ""
+    print()
     try:
         #
         # First, split the funds across all three pools
@@ -579,7 +579,7 @@ def transaction_chain(zcash):
         #
         # End the chain by returning the remaining funds
         #
-        print ""
+        print()
         print('#')
         print('# Finishing transaction chain')
         print('#')
@@ -589,14 +589,14 @@ def transaction_chain(zcash):
             sapling_zaddr_1, sapling_zaddr_2, sapling_zaddr_3,
         ]
 
-        print ""
+        print()
         print('Waiting for all transactions to be mined')
         for addr in all_addrs:
             balance = decimal.Decimal(zcash.z_getbalance(addr, 0)).quantize(decimal.Decimal('1.00000000'))
             if balance > 0:
                 wait_for_balance(zcash, addr, balance)
 
-        print ""
+        print()
         print('Returning remaining balance minus fees')
         for addr in all_addrs:
             balance = decimal.Decimal(zcash.z_getbalance(addr)).quantize(decimal.Decimal('1.00000000'))
@@ -623,7 +623,7 @@ STAGE_COMMANDS = {
 def run_stage(stage, zcash):
     print('Running stage %s' % stage)
     print('=' * (len(stage) + 14))
-    print ""
+    print()
 
     cmd = STAGE_COMMANDS[stage]
     if cmd is not None:
@@ -632,10 +632,10 @@ def run_stage(stage, zcash):
         print('WARNING: stage not yet implemented, skipping')
         ret = {}
 
-    print ""
+    print()
     print('-' * (len(stage) + 15))
     print('Finished stage %s' % stage)
-    print ""
+    print()
 
     return ret
 
@@ -762,7 +762,7 @@ def main():
     print('Start time: %s' % TIME_STARTED)
     print('Starting zcashd...')
     zcash.start(not args.mainnet)
-    print ""
+    print()
 
     # Run the stages
     results = {}
@@ -774,7 +774,7 @@ def main():
     zcash.stop()
 
     passed = True
-    print ""
+    print()
     print('========================')
     print('       Results')
     print('========================')
@@ -799,7 +799,7 @@ def main():
         ))
 
     if not passed:
-        print ""
+        print()
         print("!!! One or more smoke test stages failed !!!")
         sys.exit(1)
 
