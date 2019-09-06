@@ -1,9 +1,9 @@
-package=crate_unicode_xid
-$(package)_crate_name=unicode-xid
-$(package)_version=0.2.0
+package=crate_utf8_ranges
+$(package)_crate_name=utf8-ranges
+$(package)_version=1.0.4
 $(package)_download_path=https://static.crates.io/crates/$($(package)_crate_name)
 $(package)_file_name=$($(package)_crate_name)-$($(package)_version).crate
-$(package)_sha256_hash=826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c
+$(package)_sha256_hash=b4ae116fef2b7fea257ed6440d3cfcff7f190865f170cdad00bb6465bf18ecba
 $(package)_crate_versioned_name=$($(package)_crate_name)
 
 define $(package)_preprocess_cmds

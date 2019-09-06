@@ -1,9 +1,9 @@
-package=crate_unicode_xid
-$(package)_crate_name=unicode-xid
-$(package)_version=0.2.0
+package=crate_scopeguard
+$(package)_crate_name=scopeguard
+$(package)_version=1.0.0
 $(package)_download_path=https://static.crates.io/crates/$($(package)_crate_name)
 $(package)_file_name=$($(package)_crate_name)-$($(package)_version).crate
-$(package)_sha256_hash=826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c
+$(package)_sha256_hash=b42e15e59b18a828bbf5c58ea01debb36b9b096346de35d941dcb89009f24a0d
 $(package)_crate_versioned_name=$($(package)_crate_name)
 
 define $(package)_preprocess_cmds

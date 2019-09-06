@@ -1,9 +1,9 @@
-package=crate_unicode_xid
-$(package)_crate_name=unicode-xid
-$(package)_version=0.2.0
+package=crate_memchr
+$(package)_crate_name=memchr
+$(package)_version=2.2.1
 $(package)_download_path=https://static.crates.io/crates/$($(package)_crate_name)
 $(package)_file_name=$($(package)_crate_name)-$($(package)_version).crate
-$(package)_sha256_hash=826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c
+$(package)_sha256_hash=88579771288728879b57485cc7d6b07d648c9f0141eb955f8ab7f9d45394468e
 $(package)_crate_versioned_name=$($(package)_crate_name)
 
 define $(package)_preprocess_cmds

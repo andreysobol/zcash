@@ -1,10 +1,10 @@
 package=librustzcash
 $(package)_version=0.1
-$(package)_download_path=https://github.com/zcash/$(package)/archive/
+$(package)_download_path=https://github.com/str4d/$(package)/archive/
 $(package)_file_name=$(package)-$($(package)_git_commit).tar.gz
 $(package)_download_file=$($(package)_git_commit).tar.gz
-$(package)_sha256_hash=66429f5f4f91ac38bcdbeec474316347fb3b7a794df0b7deb76b40ce38445abf
-$(package)_git_commit=b19b40ccf0137605bb9959bf917340a06f8b4171
+$(package)_sha256_hash=154aea3333d3be61810555fa41a59c666a147111c5253a42ba31656cfe4e8d39
+$(package)_git_commit=74d64bd40155df3123dc4256a0a4c56e085940de
 $(package)_dependencies=rust
 ifeq ($(LIBRUSTZCASH_OVERRIDE),)
 $(package)_dependencies+=$(rust_crates)

@@ -1,9 +1,9 @@
-package=crate_unicode_xid
-$(package)_crate_name=unicode-xid
-$(package)_version=0.2.0
+package=crate_tracing_log
+$(package)_crate_name=tracing-log
+$(package)_version=0.1.0
 $(package)_download_path=https://static.crates.io/crates/$($(package)_crate_name)
 $(package)_file_name=$($(package)_crate_name)-$($(package)_version).crate
-$(package)_sha256_hash=826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c
+$(package)_sha256_hash=652bc99e1286541d6ccc42d5fb37213d1cdde544f88b19fac3d94e3117b55163
 $(package)_crate_versioned_name=$($(package)_crate_name)
 
 define $(package)_preprocess_cmds

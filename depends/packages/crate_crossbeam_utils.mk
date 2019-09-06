@@ -1,9 +1,9 @@
-package=crate_unicode_xid
-$(package)_crate_name=unicode-xid
-$(package)_version=0.2.0
+package=crate_crossbeam_utils
+$(package)_crate_name=crossbeam-utils
+$(package)_version=0.6.6
 $(package)_download_path=https://static.crates.io/crates/$($(package)_crate_name)
 $(package)_file_name=$($(package)_crate_name)-$($(package)_version).crate
-$(package)_sha256_hash=826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c
+$(package)_sha256_hash=04973fa96e96579258a5091af6003abde64af786b860f18622b82e026cca60e6
 $(package)_crate_versioned_name=$($(package)_crate_name)
 
 define $(package)_preprocess_cmds

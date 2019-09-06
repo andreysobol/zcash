@@ -1,10 +1,10 @@
-package=crate_unicode_xid
+package=crate_unicode_xid_0_1_0
 $(package)_crate_name=unicode-xid
-$(package)_version=0.2.0
+$(package)_version=0.1.0
 $(package)_download_path=https://static.crates.io/crates/$($(package)_crate_name)
 $(package)_file_name=$($(package)_crate_name)-$($(package)_version).crate
-$(package)_sha256_hash=826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c
-$(package)_crate_versioned_name=$($(package)_crate_name)
+$(package)_sha256_hash=fc72304796d0818e357ead4e000d19c9c174ab23dc11093ac919054d20a6a7fc
+$(package)_crate_versioned_name=$($(package)_crate_name)-0.1.0
 
 define $(package)_preprocess_cmds
   $(call generate_crate_checksum,$(package))
