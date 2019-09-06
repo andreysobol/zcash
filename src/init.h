@@ -20,6 +20,7 @@ class thread_group;
 
 extern CWallet* pwalletMain;
 extern ZCJoinSplit* pzcashParams;
+extern void* pTracingHandle;
 
 void StartShutdown();
 bool ShutdownRequested();

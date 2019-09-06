@@ -31,6 +31,7 @@
 CClientUIInterface uiInterface; // Declared but not defined in ui_interface.h
 CWallet* pwalletMain;
 ZCJoinSplit *pzcashParams;
+void* pTracingHandle = nullptr;
 
 extern bool fPrintToConsole;
 extern void noui_connect();
@@ -76,6 +77,7 @@ BasicTestingSetup::BasicTestingSetup()
     ECC_Start();
     SetupEnvironment();
     SetupNetworking();
+    pTracingHandle = librustzcash_tracing_init("info");
     fPrintToDebugLog = false; // don't want to write to debug.log file
     fCheckBlockIndex = true;
     SelectParams(CBaseChainParams::MAIN);

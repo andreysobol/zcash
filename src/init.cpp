@@ -75,6 +75,7 @@ using namespace std;
 
 extern void ThreadSendAlert();
 
+void* pTracingHandle = nullptr;
 ZCJoinSplit* pzcashParams = NULL;
 
 #ifdef ENABLE_WALLET
@@ -855,6 +856,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     fPrintToConsole = GetBoolArg("-printtoconsole", false);
     fLogTimestamps = GetBoolArg("-logtimestamps", true);
     fLogIPs = GetBoolArg("-logips", false);
+    pTracingHandle = librustzcash_tracing_init("info");
 
     LogPrintf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     LogPrintf("Zcash version %s (%s)\n", FormatFullVersion(), CLIENT_DATE);
