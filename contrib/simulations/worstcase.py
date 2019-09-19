@@ -226,6 +226,17 @@ def worst_case_one_tx_containing_joinsplits(times):
     print_makeup(vtx, times)
     print()
 
+def worst_case_one_transparent_input_per_transaction(times):
+    vtx = worst_case_many_identical_txs({
+        'vin': ["4730440220729cf524b098309f212ff8a672a4b7a6a059777357de76f66fae12b4d5282d3802207dc59ee948c8d9bfadb20c8a0f4e4897a698dcb11afe6531818a6e4eb97d9323012103f75e62f9ed1e57be52dba2e9e83184dc700c2888189e3774b201d0e044e45262"],
+        'vout': ["76a914a37087fc8b97b5801a1cc24e9f768466851ce77b88ac"],
+        'nShieldedSpend': 0,
+        'nShieldedOutput': 0,
+        'nJoinSplit': 0,
+    })
+    print('One transparent input per transaction:')
+    print_makeup(vtx, times)
+    print()
 
 def run():
     print('Collecting benchmarks...')
@@ -241,6 +252,7 @@ def run():
     worst_case_one_tx_containing_sapling_outputs(times)
     worst_case_one_joinsplit_per_tx(times)
     worst_case_one_tx_containing_joinsplits(times)
+    worst_case_one_transparent_input_per_transaction(times)
 
 if __name__ == '__main__':
     run()
